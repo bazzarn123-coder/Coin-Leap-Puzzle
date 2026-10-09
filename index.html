@@ -1,0 +1,560 @@
+
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coin Leap Puzzle - 6 Levels</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top, #1e1b4b, #09090b);
+            color: #f8fafc;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .coin-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.4), inset 0 -4px 6px rgba(0, 0, 0, 0.4);
+        }
+        .slot-glow {
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.6), 0 0 15px rgba(99, 102, 241, 0.15);
+        }
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.8); }
+            50% { box-shadow: 0 0 0 14px rgba(234, 179, 8, 0); }
+        }
+        .hint-highlight {
+            animation: pulse-glow 1.5s infinite;
+            border-color: #f59e0b !important;
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between items-center min-h-screen p-4 md:p-8">
+
+    <header class="w-full max-w-5xl flex flex-col sm:flex-row justify-between items-center bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 md:p-6 mb-6 shadow-2xl">
+        <div class="flex items-center space-x-3 mb-4 sm:mb-0">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-rose-500 to-indigo-600 flex items-center justify-center text-2xl font-black shadow-lg">🪙</div>
+            <div>
+                <h1 class="text-xl md:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-rose-400 via-purple-300 to-indigo-400 bg-clip-text text-transparent">Coin Leap Puzzle</h1>
+                <p class="text-xs text-slate-400">Classic Symmetrical Puzzles (6 Levels)</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-2 md:space-x-4">
+            <button onclick="openRulesModal()" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-slate-200 text-sm font-semibold rounded-xl transition border border-white/10 flex items-center gap-2">
+                <span>📖</span> Rules
+            </button>
+            <button onclick="goToLevelSelect()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition shadow-lg shadow-indigo-600/30 flex items-center gap-2">
+                <span>🗺️</span> Level Map
+            </button>
+        </div>
+    </header>
+
+    <main class="w-full max-w-5xl flex-1 flex flex-col justify-center items-center">
+        
+        <!-- Level Select View -->
+        <div id="level-select-view" class="w-full flex flex-col items-center">
+            <div class="text-center mb-8 animate-float">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-2">Select Your Trial</h2>
+                <p class="text-slate-400 text-sm md:text-base">Master all 6 classic progressive levels!</p>
+            </div>
+            <div id="level-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full max-w-3xl">
+                <!-- Dynamically populated level buttons -->
+            </div>
+        </div>
+
+        <!-- Gameplay View -->
+        <div id="game-view" class="w-full hidden flex flex-col items-center">
+            <!-- Level Info Bar -->
+            <div class="w-full flex flex-wrap justify-between items-center bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 mb-6 shadow-xl gap-4">
+                <div class="flex items-center space-x-3">
+                    <button onclick="goToLevelSelect()" class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition">&larr;</button>
+                    <div>
+                        <h3 id="current-level-title" class="text-lg font-bold text-white">Level 1</h3>
+                        <p id="current-level-desc" class="text-xs text-slate-400">1 Red, 1 Blue</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-4 md:space-x-6 text-sm">
+                    <div class="bg-black/30 px-3 py-1.5 rounded-xl border border-white/5 flex items-center space-x-2">
+                        <span class="text-slate-400">Moves:</span>
+                        <span id="move-counter" class="font-bold text-indigo-400 text-base">0</span>
+                        <span class="text-xs text-slate-500">(Opt: <span id="optimal-counter">3</span>)</span>
+                    </div>
+                    <div class="bg-black/30 px-3 py-1.5 rounded-xl border border-white/5 flex items-center space-x-2">
+                        <span class="text-slate-400">Time:</span>
+                        <span id="timer-display" class="font-bold text-emerald-400 text-base">00:00</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button onclick="giveHint()" class="px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold rounded-xl transition border border-amber-500/30 flex items-center gap-1 shadow-lg shadow-amber-500/10">
+                        <span>💡</span> Hint
+                    </button>
+                    <button onclick="undoMove()" class="px-3 py-2 bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-semibold rounded-xl transition border border-white/10 flex items-center gap-1">
+                        <span>↩️</span> Undo
+                    </button>
+                    <button onclick="resetCurrentLevel()" class="px-3 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-semibold rounded-xl transition border border-rose-500/30 flex items-center gap-1">
+                        <span>🔄</span> Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Single Straight Line Board Container -->
+            <div class="w-full bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-12 shadow-2xl flex flex-col items-center relative overflow-x-auto min-h-[350px] justify-center">
+                <div class="absolute -top-24 -left-24 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-24 -right-24 w-72 h-72 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <!-- Single horizontal flex row container with overflow scroll for long tracks -->
+                <div id="board-track" class="flex flex-nowrap items-center justify-start md:justify-center gap-2 md:gap-3 z-10 my-4 min-w-max px-4 w-full overflow-x-auto py-4">
+                    <!-- Dynamically generated board slots in 1 straight line -->
+                </div>
+
+                <!-- Helper Tip / Hint Box -->
+                <div id="hint-box" class="mt-6 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-200 text-xs text-center max-w-md transition-all hidden z-10">
+                    💡 <span id="hint-text">Click a coin to slide or jump.</span>
+                </div>
+                <p id="rule-tip" class="text-xs text-slate-400 mt-4 text-center max-w-md z-10">
+                    Click any coin to slide into an adjacent empty spot or jump over 1 coin into an empty spot.
+                </p>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="rules-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-white/10 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative animate-pop">
+            <h3 class="text-2xl font-bold text-white mb-4 flex items-center gap-2"><span>📜</span> Puzzle Rules</h3>
+            <ul class="space-y-3 text-sm text-slate-300 mb-6">
+                <li class="flex items-start gap-2">
+                    <span class="text-indigo-400 font-bold">•</span>
+                    <span><strong>Goal:</strong> Swap all left-side red coins with the right-side blue coins across the straight track.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-indigo-400 font-bold">•</span>
+                    <span><strong>Sliding:</strong> A coin can slide into an immediately adjacent empty slot.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-indigo-400 font-bold">•</span>
+                    <span><strong>Jumping:</strong> A coin can jump over exactly one adjacent coin into an empty slot beyond it.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-indigo-400 font-bold">•</span>
+                    <span><strong>6 Progressive Levels:</strong> Cleanly structured up to 6 coins per side ($N^2 + 2N$ optimal moves)!</span>
+                </li>
+            </ul>
+            <button onclick="closeRulesModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/30">Got It!</button>
+        </div>
+    </div>
+
+    <div id="victory-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl text-center relative animate-pop">
+            <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-rose-500 rounded-3xl mx-auto flex items-center justify-center text-4xl shadow-lg shadow-amber-500/30 mb-6 animate-bounce">🏆</div>
+            <h3 class="text-3xl font-extrabold text-white mb-2">Trial Cleared!</h3>
+            <p id="victory-message" class="text-slate-300 text-sm mb-6">Fantastic puzzle solving! You mastered this trial with exceptional skill.</p>
+            <div class="flex gap-3">
+                <button onclick="goToLevelSelect()" class="flex-1 py-3 bg-white/10 hover:bg-white/20 text-slate-200 font-bold rounded-xl transition border border-white/10">Level Map</button>
+                <button onclick="nextLevel()" id="next-level-btn" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/30">Next Level ➔</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Web Audio API Sound Synthesizer
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, type, duration, vol = 0.1) {
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        const soundFX = {
+            click: () => playTone(440, 'sine', 0.1, 0.05),
+            slide: () => playTone(320, 'triangle', 0.15, 0.08),
+            jump: () => playTone(587.33, 'sine', 0.2, 0.1),
+            win: () => {
+                setTimeout(() => playTone(523.25, 'sine', 0.2, 0.15), 0);
+                setTimeout(() => playTone(659.25, 'sine', 0.2, 0.15), 150);
+                setTimeout(() => playTone(783.99, 'sine', 0.4, 0.15), 300);
+            },
+            error: () => playTone(150, 'sawtooth', 0.2, 0.1),
+            hint: () => playTone(880, 'sine', 0.15, 0.1)
+        };
+
+        // Exactly 6 Progressive Symmetrical Levels
+        const levels = [];
+        for (let n = 1; n <= 6; n++) {
+            const redCoins = Array(n).fill('R');
+            const blueCoins = Array(n).fill('B');
+            const start = [...redCoins, null, ...blueCoins];
+            const goal = [...blueCoins, null, ...redCoins];
+            const optimal = (n * n) + (2 * n);
+
+            levels.push({
+                id: n,
+                title: `Level ${n}: ${n} Coin${n > 1 ? 's' : ''} Swap`,
+                desc: `${n} Red, ${n} Blue (${2 * n + 1} spots)`,
+                start: start,
+                goal: goal,
+                optimal: optimal,
+                n: n
+            });
+        }
+
+        let currentLevelIndex = 0;
+        let boardState = [];
+        let goalState = [];
+        let moveCount = 0;
+        let historyStack = [];
+        let timerInterval = null;
+        let secondsElapsed = 0;
+        let unlockedLevel = parseInt(localStorage.getItem('coin_puzzle_unlocked_v6') || '6');
+
+        window.onload = function() {
+            renderLevelSelect();
+        };
+
+        function renderLevelSelect() {
+            const grid = document.getElementById('level-grid');
+            grid.innerHTML = '';
+            
+            levels.forEach((lvl, idx) => {
+                const isUnlocked = lvl.id <= unlockedLevel;
+                const card = document.createElement('div');
+                card.className = `p-5 rounded-2xl border transition flex flex-col justify-between items-center text-center cursor-pointer relative overflow-hidden ${
+                    isUnlocked 
+                        ? 'bg-white/5 border-white/10 hover:border-indigo-500 hover:bg-white/10 shadow-lg group' 
+                        : 'bg-black/40 border-white/5 opacity-50 cursor-not-allowed'
+                }`;
+                
+                card.innerHTML = `
+                    <div class="absolute top-2 right-2 text-xs font-bold px-2 py-0.5 rounded-full ${isUnlocked ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-800 text-slate-500'}">
+                        ${isUnlocked ? 'Unlocked' : 'Locked 🔒'}
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-xl font-extrabold text-indigo-300 mb-3 group-hover:scale-110 transition">
+                        ${lvl.id}
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white text-sm mb-1">${lvl.n} Coins / Side</h4>
+                        <p class="text-xs text-slate-400">Opt: ${lvl.optimal} moves</p>
+                    </div>
+                `;
+
+                if (isUnlocked) {
+                    card.onclick = () => startLevel(idx);
+                }
+                grid.appendChild(card);
+            });
+
+            document.getElementById('level-select-view').classList.remove('hidden');
+            document.getElementById('game-view').classList.add('hidden');
+            stopTimer();
+        }
+
+        function startLevel(index) {
+            currentLevelIndex = index;
+            const lvl = levels[index];
+            boardState = [...lvl.start];
+            goalState = [...lvl.goal];
+            moveCount = 0;
+            historyStack = [];
+            
+            document.getElementById('current-level-title').innerText = lvl.title;
+            document.getElementById('current-level-desc').innerText = lvl.desc;
+            document.getElementById('optimal-counter').innerText = lvl.optimal;
+            document.getElementById('hint-box').classList.add('hidden');
+            
+            document.getElementById('level-select-view').classList.add('hidden');
+            document.getElementById('game-view').classList.remove('hidden');
+            
+            startTimer();
+            renderBoard();
+        }
+
+        function startTimer() {
+            stopTimer();
+            secondsElapsed = 0;
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+            const secs = (secondsElapsed % 60).toString().padStart(2, '0');
+            document.getElementById('timer-display').innerText = `${mins}:${secs}`;
+        }
+
+        function renderBoard() {
+            const track = document.getElementById('board-track');
+            track.innerHTML = '';
+            
+            boardState.forEach((slot, idx) => {
+                const slotDiv = document.createElement('div');
+                slotDiv.className = `w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 rounded-2xl flex items-center justify-center transition relative bg-black/40 border border-white/10 slot-glow cursor-pointer hover:border-indigo-500/50`;
+
+                if (slot !== null) {
+                    const isRed = slot === 'R';
+                    const arrow = isRed ? '&rarr;' : '&larr;';
+                    const coin = document.createElement('div');
+                    coin.className = `w-10 h-10 sm:w-13 sm:h-13 rounded-full flex items-center justify-center font-bold text-white cursor-pointer coin-shadow transition transform hover:scale-105 active:scale-95 animate-pop ${
+                        isRed 
+                            ? 'bg-gradient-to-tr from-rose-600 to-rose-400 border border-rose-300/50' 
+                            : 'bg-gradient-to-tr from-indigo-600 to-cyan-400 border border-cyan-300/50'
+                    }`;
+                    coin.innerHTML = `<span class="text-xs sm:text-sm font-black">${arrow}</span>`;
+                    coin.onclick = (e) => {
+                        e.stopPropagation();
+                        handleCoinClick(idx);
+                    };
+                    slotDiv.appendChild(coin);
+                } else {
+                    slotDiv.onclick = () => handleEmptyClick(idx);
+                }
+
+                track.appendChild(slotDiv);
+            });
+
+            document.getElementById('move-counter').innerText = moveCount;
+        }
+
+        function getValidMovesForState(state) {
+            let moves = [];
+            state.forEach((coin, idx) => {
+                if (coin !== null) {
+                    const dir = coin === 'R' ? 1 : -1;
+
+                    // Slide
+                    let slideIdx = idx + dir;
+                    if (slideIdx >= 0 && slideIdx < state.length && state[slideIdx] === null) {
+                        moves.push({ from: idx, to: slideIdx, type: 'slide' });
+                    }
+
+                    // Jump
+                    let jumpIdx = idx + (2 * dir);
+                    let overIdx = idx + dir;
+                    if (jumpIdx >= 0 && jumpIdx < state.length && state[jumpIdx] === null && state[overIdx] !== null) {
+                        moves.push({ from: idx, to: jumpIdx, type: 'jump' });
+                    }
+                }
+            });
+            return moves;
+        }
+
+        function giveHint() {
+            soundFX.hint();
+            const goalStr = JSON.stringify(goalState);
+            const currentStateStr = JSON.stringify(boardState);
+
+            if (currentStateStr === goalStr) {
+                document.getElementById('hint-text').innerText = "Puzzle already solved!";
+                document.getElementById('hint-box').classList.remove('hidden');
+                return;
+            }
+
+            let queue = [{ state: boardState, path: [] }];
+            let visited = new Set();
+            visited.add(currentStateStr);
+
+            let firstMove = null;
+
+            while (queue.length > 0) {
+                let { state, path } = queue.shift();
+
+                if (JSON.stringify(state) === goalStr) {
+                    firstMove = path[0];
+                    break;
+                }
+
+                let validMoves = getValidMovesForState(state);
+                for (let move of validMoves) {
+                    let nextState = [...state];
+                    nextState[move.to] = nextState[move.from];
+                    nextState[move.from] = null;
+                    let nextStateStr = JSON.stringify(nextState);
+
+                    if (!visited.has(nextStateStr)) {
+                        visited.add(nextStateStr);
+                        queue.push({ state: nextState, path: [...path, move] });
+                    }
+                }
+            }
+
+            const hintBox = document.getElementById('hint-box');
+            const hintText = document.getElementById('hint-text');
+
+            if (!firstMove) {
+                hintText.innerText = "No solution path from this state! Try using Undo.";
+                hintBox.classList.remove('hidden');
+                return;
+            }
+
+            const coinName = boardState[firstMove.from] === 'R' ? 'Red' : 'Blue';
+            const actionWord = firstMove.type === 'jump' ? 'jump' : 'slide';
+            hintText.innerText = `💡 Smart Hint: ${actionWord} your ${coinName} coin at slot #${firstMove.from + 1}.`;
+            hintBox.classList.remove('hidden');
+        }
+
+        function handleCoinClick(idx) {
+            soundFX.click();
+            document.getElementById('hint-box').classList.add('hidden');
+
+            const coin = boardState[idx];
+            const dir = coin === 'R' ? 1 : -1;
+
+            let validMoves = [];
+            let slideIdx = idx + dir;
+            if (slideIdx >= 0 && slideIdx < boardState.length && boardState[slideIdx] === null) {
+                validMoves.push(slideIdx);
+            }
+            let jumpIdx = idx + (2 * dir);
+            let overIdx = idx + dir;
+            if (jumpIdx >= 0 && jumpIdx < boardState.length && boardState[jumpIdx] === null && boardState[overIdx] !== null) {
+                validMoves.push(jumpIdx);
+            }
+
+            if (validMoves.length > 0) {
+                executeMove(idx, validMoves[0]);
+            } else {
+                soundFX.error();
+            }
+        }
+
+        function handleEmptyClick(emptyIdx) {
+            document.getElementById('hint-box').classList.add('hidden');
+
+            let candidateIdx = -1;
+            [-1, 1, -2, 2].forEach(offset => {
+                let fromIdx = emptyIdx + offset;
+                if (fromIdx >= 0 && fromIdx < boardState.length) {
+                    let coin = boardState[fromIdx];
+                    if (coin !== null) {
+                        const dir = coin === 'R' ? 1 : -1;
+                        if (Math.abs(offset) === 1 && offset === dir) candidateIdx = fromIdx;
+                        if (Math.abs(offset) === 2 && offset === 2 * dir && boardState[(emptyIdx + fromIdx) / 2] !== null) candidateIdx = fromIdx;
+                    }
+                }
+            });
+
+            if (candidateIdx !== -1) {
+                executeMove(candidateIdx, emptyIdx);
+            }
+        }
+
+        function executeMove(fromIdx, toIdx) {
+            historyStack.push([...boardState]);
+
+            const isJump = Math.abs(fromIdx - toIdx) === 2;
+            boardState[toIdx] = boardState[fromIdx];
+            boardState[fromIdx] = null;
+
+            moveCount++;
+            if (isJump) {
+                soundFX.jump();
+            } else {
+                soundFX.slide();
+            }
+
+            renderBoard();
+            checkVictory();
+        }
+
+        function undoMove() {
+            if (historyStack.length === 0) return;
+            boardState = historyStack.pop();
+            moveCount = Math.max(0, moveCount - 1);
+            document.getElementById('hint-box').classList.add('hidden');
+            soundFX.click();
+            renderBoard();
+        }
+
+        function resetCurrentLevel() {
+            startLevel(currentLevelIndex);
+        }
+
+        function checkVictory() {
+            const isWon = boardState.every((val, idx) => val === goalState[idx]);
+
+            if (isWon) {
+                stopTimer();
+                soundFX.win();
+
+                const lvl = levels[currentLevelIndex];
+                if (currentLevelIndex + 2 > unlockedLevel && currentLevelIndex + 1 < levels.length) {
+                    unlockedLevel = currentLevelIndex + 2;
+                    localStorage.setItem('coin_puzzle_unlocked_v6', unlockedLevel);
+                }
+
+                const msg = document.getElementById('victory-message');
+                msg.innerText = `Completed in ${moveCount} moves (Optimal: ${lvl.optimal}) & time ${document.getElementById('timer-display').innerText}!`;
+                
+                const nextBtn = document.getElementById('next-level-btn');
+                if (currentLevelIndex + 1 >= levels.length) {
+                    nextBtn.innerText = "All 6 Levels Complete! 🎉";
+                    nextBtn.onclick = goToLevelSelect;
+                } else {
+                    nextBtn.innerText = "Next Level ➔";
+                    nextBtn.onclick = nextLevel;
+                }
+
+                document.getElementById('victory-modal').classList.remove('hidden');
+            }
+        }
+
+        function nextLevel() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            if (currentLevelIndex + 1 < levels.length) {
+                startLevel(currentLevelIndex + 1);
+            } else {
+                goToLevelSelect();
+            }
+        }
+
+        function goToLevelSelect() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            renderLevelSelect();
+        }
+
+        function openRulesModal() {
+            document.getElementById('rules-modal').classList.remove('hidden');
+        }
+
+        function closeRulesModal() {
+            document.getElementById('rules-modal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
