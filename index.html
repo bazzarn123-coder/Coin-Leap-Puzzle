@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full overflow-hidden">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Coin Leap Puzzle - 6 Levels</title>
+    
+    <!-- Embedded Browser Address Bar & Tab Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%234f46e5' stroke='%23818cf8' stroke-width='6'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='central' text-anchor='middle' font-size='52'%3E🪙%3C/text%3E%3C/svg%3E">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top, #1e1b4b, #09090b);
+            color: #f8fafc;
+        }
+        .coin-shadow {
+            box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.4), inset 0 -4px 6px rgba(0, 0, 0, 0.4);
+        }
+        .slot-glow {
+            box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.6), 0 0 12px rgba(99, 102, 241, 0.15);
+        }
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            70% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.8); }
+            50% { box-shadow: 0 0 0 10px rgba(234, 179, 8, 0); }
+        }
+        .hint-highlight {
+            animation: pulse-glow 1.5s infinite;
+            border-color: #f59e0b !important;
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between items-center h-full w-full p-2 sm:p-4 md:p-6 overflow-hidden">
+
+    <!-- Compact Header -->
+    <header class="w-full max-w-5xl flex flex-row justify-between items-center bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 sm:p-4 mb-2 sm:mb-4 shadow-xl shrink-0">
+        <div class="flex items-center space-x-2 sm:space-x-3">
+            <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-rose-500 to-indigo-600 flex items-center justify-center text-xl sm:text-2xl font-black shadow-lg">🪙</div>
+            <div>
+                <h1 class="text-base sm:text-xl md:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-rose-400 via-purple-300 to-indigo-400 bg-clip-text text-transparent leading-tight">Coin Leap Puzzle</h1>
+                <p class="text-[10px] sm:text-xs text-slate-400 hidden xs:block">6 Symmetrical Levels</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-1.5 sm:space-x-3">
+            <button onclick="openRulesModal()" class="px-2.5 py-1.5 sm:px-3.5 sm:py-2 bg-white/10 hover:bg-white/20 text-slate-200 text-xs sm:text-sm font-semibold rounded-xl transition border border-white/10 flex items-center gap-1.5">
+                <span>📖</span> <span class="hidden sm:inline">Rules</span>
+            </button>
+            <button onclick="goToLevelSelect()" class="px-2.5 py-1.5 sm:px-3.5 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold rounded-xl transition shadow-lg shadow-indigo-600/30 flex items-center gap-1.5">
+                <span>🗺️</span> <span class="hidden sm:inline">Level Map</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area Stretchable Fit -->
+    <main class="w-full max-w-5xl flex-1 flex flex-col justify-center items-center overflow-hidden min-h-0">
+        
+        <!-- Level Select View -->
+        <div id="level-select-view" class="w-full h-full flex flex-col items-center justify-center p-2 overflow-y-auto">
+            <div class="text-center mb-4 sm:mb-6 animate-float shrink-0">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-1">Select Your Trial</h2>
+                <p class="text-slate-400 text-xs sm:text-sm">Master all 6 classic progressive levels!</p>
+            </div>
+            <div id="level-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4 w-full max-w-3xl shrink-0">
+                <!-- Dynamically populated level buttons -->
+            </div>
+        </div>
+
+        <!-- Gameplay View -->
+        <div id="game-view" class="w-full h-full hidden flex flex-col justify-between items-center gap-2 sm:gap-4 overflow-hidden">
+            <!-- Level Info Bar -->
+            <div class="w-full flex flex-wrap justify-between items-center bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 sm:p-4 shadow-xl gap-2 shrink-0">
+                <div class="flex items-center space-x-2">
+                    <button onclick="goToLevelSelect()" class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition font-bold text-sm sm:text-base">&larr;</button>
+                    <div>
+                        <h3 id="current-level-title" class="text-xs sm:text-base font-bold text-white">Level 1</h3>
+                        <p id="current-level-desc" class="text-[10px] sm:text-xs text-slate-400">1 Red, 1 Blue</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 sm:space-x-4 text-xs sm:text-sm">
+                    <div class="bg-black/30 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl border border-white/5 flex items-center space-x-1.5">
+                        <span class="text-slate-400">Moves:</span>
+                        <span id="move-counter" class="font-bold text-indigo-400 text-xs sm:text-base">0</span>
+                        <span class="text-[10px] sm:text-xs text-slate-500">(Opt: <span id="optimal-counter">3</span>)</span>
+                    </div>
+                    <div class="bg-black/30 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl border border-white/5 flex items-center space-x-1.5">
+                        <span class="text-slate-400">Time:</span>
+                        <span id="timer-display" class="font-bold text-emerald-400 text-xs sm:text-base">00:00</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-1.5 sm:space-x-2">
+                    <button id="hint-btn" onclick="giveHint()" class="px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold rounded-xl transition border border-amber-500/30 flex items-center gap-1">
+                        <span>💡</span> <span id="hint-btn-text" class="hidden sm:inline">Hint (1 Left)</span>
+                    </button>
+                    <button onclick="undoMove()" class="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-semibold rounded-xl transition border border-white/10 flex items-center gap-1">
+                        <span>↩️</span> <span class="hidden sm:inline">Undo</span>
+                    </button>
+                    <button onclick="resetCurrentLevel()" class="px-2.5 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-semibold rounded-xl transition border border-rose-500/30 flex items-center gap-1">
+                        <span>🔄</span> <span class="hidden sm:inline">Reset</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Auto-Scaling Board Container -->
+            <div class="w-full flex-1 bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-3 sm:p-6 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden min-h-0">
+                <div class="absolute -top-24 -left-24 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-24 -right-24 w-72 h-72 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <!-- Dynamically Scaled Track -->
+                <div id="board-track" class="w-full max-w-4xl flex flex-nowrap items-center justify-center gap-1 sm:gap-2 z-10 my-auto py-2">
+                    <!-- Dynamic slots inside -->
+                </div>
+
+                <!-- Helper Tip Box -->
+                <div id="hint-box" class="mt-2 p-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-200 text-[11px] sm:text-xs text-center max-w-md transition-all hidden z-10 shrink-0">
+                    💡 <span id="hint-text">Click a coin to slide or jump.</span>
+                </div>
+                <p id="rule-tip" class="text-[10px] sm:text-xs text-slate-400 mt-2 text-center max-w-md z-10 shrink-0">
+                    Red moves strictly right (&rarr;), Blue moves strictly left (&larr;).
+                </p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Rules Modal -->
+    <div id="rules-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl relative animate-pop">
+            <h3 class="text-xl sm:text-2xl font-bold text-white mb-4 flex items-center gap-2"><span>📜</span> Puzzle Rules</h3>
+            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-300 mb-6">
+                <li class="flex items-start gap-2">
+                    <span class="text-indigo-400 font-bold">•</span>
+                    <span><strong>Goal:</strong> Swap all left-side red counters with right-side blue counters.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-indigo-400 font-bold">•</span>
+                    <span><strong>Direction:</strong> Counters can <strong>never</strong> move backward. Red moves right (&rarr;), Blue moves left (&larr;).</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-indigo-400 font-bold">•</span>
+                    <span><strong>Sliding:</strong> Slide forward 1 spot into an empty space.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-indigo-400 font-bold">•</span>
+                    <span><strong>Jumping:</strong> Jump forward over exactly 1 counter into an empty space.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-indigo-400 font-bold">•</span>
+                    <span><strong>Hints:</strong> Limited to 1 hint per level attempt.</span>
+                </li>
+            </ul>
+            <button onclick="closeRulesModal()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/30 text-sm">Got It!</button>
+        </div>
+    </div>
+
+    <!-- Victory Modal -->
+    <div id="victory-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center relative animate-pop">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-amber-400 to-rose-500 rounded-3xl mx-auto flex items-center justify-center text-3xl sm:text-4xl shadow-lg shadow-amber-500/30 mb-4 animate-bounce">🏆</div>
+            <h3 class="text-2xl sm:text-3xl font-extrabold text-white mb-2">Trial Cleared!</h3>
+            <p id="victory-message" class="text-slate-300 text-xs sm:text-sm mb-6">Fantastic puzzle solving!</p>
+            <div class="flex gap-3">
+                <button onclick="goToLevelSelect()" class="flex-1 py-2.5 bg-white/10 hover:bg-white/20 text-slate-200 text-xs sm:text-sm font-bold rounded-xl transition border border-white/10">Level Map</button>
+                <button onclick="nextLevel()" id="next-level-btn" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold rounded-xl transition shadow-lg shadow-indigo-600/30">Next Level ➔</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Web Audio API Sound Synthesizer
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, type, duration, vol = 0.1) {
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        const soundFX = {
+            click: () => playTone(440, 'sine', 0.1, 0.05),
+            slide: () => playTone(320, 'triangle', 0.15, 0.08),
+            jump: () => playTone(587.33, 'sine', 0.2, 0.1),
+            win: () => {
+                setTimeout(() => playTone(523.25, 'sine', 0.2, 0.15), 0);
+                setTimeout(() => playTone(659.25, 'sine', 0.2, 0.15), 150);
+                setTimeout(() => playTone(783.99, 'sine', 0.4, 0.15), 300);
+            },
+            error: () => playTone(150, 'sawtooth', 0.2, 0.1),
+            hint: () => playTone(880, 'sine', 0.15, 0.1)
+        };
+
+        // Progressive Symmetrical Levels (1 to 6)
+        const levels = [];
+        for (let n = 1; n <= 6; n++) {
+            const redCoins = Array(n).fill('R');
+            const blueCoins = Array(n).fill('B');
+            const start = [...redCoins, null, ...blueCoins];
+            const goal = [...blueCoins, null, ...redCoins];
+            const optimal = (n * n) + (2 * n);
+
+            levels.push({
+                id: n,
+                title: `Level ${n}: ${n} Coin${n > 1 ? 's' : ''} Swap`,
+                desc: `${n} Red, ${n} Blue (${2 * n + 1} spots)`,
+                start: start,
+                goal: goal,
+                optimal: optimal,
+                n: n
+            });
+        }
+
+        let currentLevelIndex = 0;
+        let boardState = [];
+        let goalState = [];
+        let moveCount = 0;
+        let hintsUsed = 0;
+        const MAX_HINTS = 1;
+        let historyStack = [];
+        let timerInterval = null;
+        let secondsElapsed = 0;
+        let unlockedLevel = parseInt(localStorage.getItem('coin_puzzle_unlocked_v6') || '6');
+
+        window.onload = function() {
+            renderLevelSelect();
+        };
+
+        function renderLevelSelect() {
+            const grid = document.getElementById('level-grid');
+            grid.innerHTML = '';
+            
+            levels.forEach((lvl, idx) => {
+                const isUnlocked = lvl.id <= unlockedLevel;
+                const card = document.createElement('div');
+                card.className = `p-3 sm:p-4 rounded-2xl border transition flex flex-col justify-between items-center text-center cursor-pointer relative overflow-hidden ${
+                    isUnlocked 
+                        ? 'bg-white/5 border-white/10 hover:border-indigo-500 hover:bg-white/10 shadow-lg group' 
+                        : 'bg-black/40 border-white/5 opacity-50 cursor-not-allowed'
+                }`;
+                
+                card.innerHTML = `
+                    <div class="absolute top-1.5 right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isUnlocked ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-800 text-slate-500'}">
+                        ${isUnlocked ? 'Unlocked' : 'Locked 🔒'}
+                    </div>
+                    <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-base sm:text-lg font-extrabold text-indigo-300 mb-2 group-hover:scale-110 transition">
+                        ${lvl.id}
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white text-xs sm:text-sm mb-0.5">${lvl.n} Coins / Side</h4>
+                        <p class="text-[10px] sm:text-xs text-slate-400">Opt: ${lvl.optimal} moves</p>
+                    </div>
+                `;
+
+                if (isUnlocked) {
+                    card.onclick = () => startLevel(idx);
+                }
+                grid.appendChild(card);
+            });
+
+            document.getElementById('level-select-view').classList.remove('hidden');
+            document.getElementById('game-view').classList.add('hidden');
+            stopTimer();
+        }
+
+        function startLevel(index) {
+            currentLevelIndex = index;
+            const lvl = levels[index];
+            boardState = [...lvl.start];
+            goalState = [...lvl.goal];
+            moveCount = 0;
+            hintsUsed = 0;
+            historyStack = [];
+            
+            document.getElementById('current-level-title').innerText = lvl.title;
+            document.getElementById('current-level-desc').innerText = lvl.desc;
+            document.getElementById('optimal-counter').innerText = lvl.optimal;
+            document.getElementById('hint-box').classList.add('hidden');
+            
+            updateHintButtonUI();
+
+            document.getElementById('level-select-view').classList.add('hidden');
+            document.getElementById('game-view').classList.remove('hidden');
+            
+            startTimer();
+            renderBoard();
+        }
+
+        function updateHintButtonUI() {
+            const btn = document.getElementById('hint-btn');
+            const text = document.getElementById('hint-btn-text');
+            if (hintsUsed >= MAX_HINTS) {
+                btn.classList.add('opacity-40', 'cursor-not-allowed');
+                btn.classList.remove('hover:bg-amber-500/30');
+                if (text) text.innerText = 'Hint (0 Left)';
+            } else {
+                btn.classList.remove('opacity-40', 'cursor-not-allowed');
+                btn.classList.add('hover:bg-amber-500/30');
+                if (text) text.innerText = 'Hint (1 Left)';
+            }
+        }
+
+        function startTimer() {
+            stopTimer();
+            secondsElapsed = 0;
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+            const secs = (secondsElapsed % 60).toString().padStart(2, '0');
+            document.getElementById('timer-display').innerText = `${mins}:${secs}`;
+        }
+
+        function renderBoard() {
+            const track = document.getElementById('board-track');
+            track.innerHTML = '';
+            
+            boardState.forEach((slot, idx) => {
+                const slotDiv = document.createElement('div');
+                slotDiv.className = `flex-1 max-w-[42px] sm:max-w-[64px] aspect-square rounded-xl sm:rounded-2xl flex items-center justify-center transition relative bg-black/40 border border-white/10 slot-glow cursor-pointer hover:border-indigo-500/50 p-0.5 sm:p-1`;
+
+                if (slot !== null) {
+                    const isRed = slot === 'R';
+                    const arrow = isRed ? '&rarr;' : '&larr;';
+                    const coin = document.createElement('div');
+                    coin.className = `w-full h-full rounded-full flex items-center justify-center font-bold text-white cursor-pointer coin-shadow transition transform hover:scale-105 active:scale-95 animate-pop ${
+                        isRed 
+                            ? 'bg-gradient-to-tr from-rose-600 to-rose-400 border border-rose-300/50' 
+                            : 'bg-gradient-to-tr from-indigo-600 to-cyan-400 border border-cyan-300/50'
+                    }`;
+                    coin.innerHTML = `<span class="text-[10px] sm:text-xs md:text-sm font-black">${arrow}</span>`;
+                    coin.onclick = (e) => {
+                        e.stopPropagation();
+                        handleCoinClick(idx);
+                    };
+                    slotDiv.appendChild(coin);
+                } else {
+                    slotDiv.onclick = () => handleEmptyClick(idx);
+                }
+
+                track.appendChild(slotDiv);
+            });
+
+            document.getElementById('move-counter').innerText = moveCount;
+        }
+
+        function getValidMovesForState(state) {
+            let moves = [];
+            state.forEach((coin, idx) => {
+                if (coin !== null) {
+                    const dir = coin === 'R' ? 1 : -1;
+
+                    // Forward Slide
+                    let slideIdx = idx + dir;
+                    if (slideIdx >= 0 && slideIdx < state.length && state[slideIdx] === null) {
+                        moves.push({ from: idx, to: slideIdx, type: 'slide' });
+                    }
+
+                    // Forward Jump
+                    let jumpIdx = idx + (2 * dir);
+                    let overIdx = idx + dir;
+                    if (jumpIdx >= 0 && jumpIdx < state.length && state[jumpIdx] === null && state[overIdx] !== null) {
+                        moves.push({ from: idx, to: jumpIdx, type: 'jump' });
+                    }
+                }
+            });
+            return moves;
+        }
+
+        function giveHint() {
+            const hintBox = document.getElementById('hint-box');
+            const hintText = document.getElementById('hint-text');
+
+            if (hintsUsed >= MAX_HINTS) {
+                soundFX.error();
+                hintText.innerText = "⚠️ You have already used your 1 hint for this level!";
+                hintBox.classList.remove('hidden');
+                return;
+            }
+
+            const goalStr = JSON.stringify(goalState);
+            const currentStateStr = JSON.stringify(boardState);
+
+            if (currentStateStr === goalStr) {
+                soundFX.hint();
+                hintText.innerText = "Puzzle already solved!";
+                hintBox.classList.remove('hidden');
+                return;
+            }
+
+            let queue = [{ state: boardState, path: [] }];
+            let visited = new Set();
+            visited.add(currentStateStr);
+
+            let firstMove = null;
+
+            while (queue.length > 0) {
+                let { state, path } = queue.shift();
+
+                if (JSON.stringify(state) === goalStr) {
+                    firstMove = path[0];
+                    break;
+                }
+
+                let validMoves = getValidMovesForState(state);
+                for (let move of validMoves) {
+                    let nextState = [...state];
+                    nextState[move.to] = nextState[move.from];
+                    nextState[move.from] = null;
+                    let nextStateStr = JSON.stringify(nextState);
+
+                    if (!visited.has(nextStateStr)) {
+                        visited.add(nextStateStr);
+                        queue.push({ state: nextState, path: [...path, move] });
+                    }
+                }
+            }
+
+            if (!firstMove) {
+                soundFX.error();
+                hintText.innerText = "No solution path from this state! Try using Undo.";
+                hintBox.classList.remove('hidden');
+                return;
+            }
+
+            soundFX.hint();
+            hintsUsed++;
+            updateHintButtonUI();
+
+            const coinName = boardState[firstMove.from] === 'R' ? 'Red' : 'Blue';
+            const actionWord = firstMove.type === 'jump' ? 'jump' : 'slide';
+            hintText.innerText = `💡 Smart Hint: ${actionWord} your ${coinName} counter at slot #${firstMove.from + 1}.`;
+            hintBox.classList.remove('hidden');
+        }
+
+        function handleCoinClick(idx) {
+            soundFX.click();
+            document.getElementById('hint-box').classList.add('hidden');
+
+            const coin = boardState[idx];
+            const dir = coin === 'R' ? 1 : -1;
+
+            let validMoves = [];
+            let slideIdx = idx + dir;
+            if (slideIdx >= 0 && slideIdx < boardState.length && boardState[slideIdx] === null) {
+                validMoves.push(slideIdx);
+            }
+            let jumpIdx = idx + (2 * dir);
+            let overIdx = idx + dir;
+            if (jumpIdx >= 0 && jumpIdx < boardState.length && boardState[jumpIdx] === null && boardState[overIdx] !== null) {
+                validMoves.push(jumpIdx);
+            }
+
+            if (validMoves.length > 0) {
+                executeMove(idx, validMoves[0]);
+            } else {
+                soundFX.error();
+            }
+        }
+
+        function handleEmptyClick(emptyIdx) {
+            document.getElementById('hint-box').classList.add('hidden');
+
+            let candidateIdx = -1;
+
+            // Strict Forward-Only Movement Check for Empty Spot Clicks:
+            // 1. Slide candidate (Red coming from left: emptyIdx-1, Blue coming from right: emptyIdx+1)
+            if (emptyIdx - 1 >= 0 && boardState[emptyIdx - 1] === 'R') {
+                candidateIdx = emptyIdx - 1;
+            } else if (emptyIdx + 1 < boardState.length && boardState[emptyIdx + 1] === 'B') {
+                candidateIdx = emptyIdx + 1;
+            }
+
+            // 2. Jump candidate if no slide candidate exists
+            if (candidateIdx === -1) {
+                if (emptyIdx - 2 >= 0 && boardState[emptyIdx - 2] === 'R' && boardState[emptyIdx - 1] !== null) {
+                    candidateIdx = emptyIdx - 2;
+                } else if (emptyIdx + 2 < boardState.length && boardState[emptyIdx + 2] === 'B' && boardState[emptyIdx + 1] !== null) {
+                    candidateIdx = emptyIdx + 2;
+                }
+            }
+
+            if (candidateIdx !== -1) {
+                executeMove(candidateIdx, emptyIdx);
+            } else {
+                soundFX.error();
+            }
+        }
+
+        function executeMove(fromIdx, toIdx) {
+            historyStack.push([...boardState]);
+
+            const isJump = Math.abs(fromIdx - toIdx) === 2;
+            boardState[toIdx] = boardState[fromIdx];
+            boardState[fromIdx] = null;
+
+            moveCount++;
+            if (isJump) {
+                soundFX.jump();
+            } else {
+                soundFX.slide();
+            }
+
+            renderBoard();
+            checkVictory();
+        }
+
+        function undoMove() {
+            if (historyStack.length === 0) return;
+            boardState = historyStack.pop();
+            moveCount = Math.max(0, moveCount - 1);
+            document.getElementById('hint-box').classList.add('hidden');
+            soundFX.click();
+            renderBoard();
+        }
+
+        function resetCurrentLevel() {
+            startLevel(currentLevelIndex);
+        }
+
+        function checkVictory() {
+            const isWon = boardState.every((val, idx) => val === goalState[idx]);
+
+            if (isWon) {
+                stopTimer();
+                soundFX.win();
+
+                const lvl = levels[currentLevelIndex];
+                if (currentLevelIndex + 2 > unlockedLevel && currentLevelIndex + 1 < levels.length) {
+                    unlockedLevel = currentLevelIndex + 2;
+                    localStorage.setItem('coin_puzzle_unlocked_v6', unlockedLevel);
+                }
+
+                const msg = document.getElementById('victory-message');
+                msg.innerText = `Completed in ${moveCount} moves (Optimal: ${lvl.optimal}) & time ${document.getElementById('timer-display').innerText}!`;
+                
+                const nextBtn = document.getElementById('next-level-btn');
+                if (currentLevelIndex + 1 >= levels.length) {
+                    nextBtn.innerText = "All 6 Levels Complete! 🎉";
+                    nextBtn.onclick = goToLevelSelect;
+                } else {
+                    nextBtn.innerText = "Next Level ➔";
+                    nextBtn.onclick = nextLevel;
+                }
+
+                document.getElementById('victory-modal').classList.remove('hidden');
+            }
+        }
+
+        function nextLevel() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            if (currentLevelIndex + 1 < levels.length) {
+                startLevel(currentLevelIndex + 1);
+            } else {
+                goToLevelSelect();
+            }
+        }
+
+        function goToLevelSelect() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            renderLevelSelect();
+        }
+
+        function openRulesModal() {
+            document.getElementById('rules-modal').classList.remove('hidden');
+        }
+
+        function closeRulesModal() {
+            document.getElementById('rules-modal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
